@@ -47,6 +47,8 @@ def write_csv_to_file(file_path, data):
 # User Management Functions
 def create_user(username: str, email: str, password: str, is_admin: bool = False):
     users_data = read_csv_from_file("users.csv", ['id', 'username', 'email', 'hashed_password', 'is_admin'])
+    st.success(users_data)
+    quit()
     if any(user['username'] == username or user['email'] == email for user in users_data):
         return None
     new_id = max(int(user['id']) for user in users_data) + 1 if users_data else 1
