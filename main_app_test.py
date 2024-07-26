@@ -7,12 +7,11 @@ import streamlit as st
 from datetime import datetime
 
 # GitHub URLs for CSV files
-USERS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/users.csv"
-DOCUMENTS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/documents.csv"
-NOTIFICATIONS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/notifications.csv"
-UPLOADS_DIR = "uploads"
+USERS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/31587228e328108e009f288174371e68319324dd/users.csv"
+DOCUMENTS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/cd8d1d7c2c384568c795a661bdc8639939d9730e/documents.csv"
+NOTIFICATIONS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/2182a43ac0d091b7bbf6f52b41d68f4f26a793e3/notifications.csv"
+UPLOADS_DIR = "test"
 
-# Helper functions to interact with CSV files
 def read_csv(url):
     response = requests.get(url)
     response.raise_for_status()
