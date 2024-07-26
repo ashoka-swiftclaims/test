@@ -140,6 +140,7 @@ def register():
             st.error("All fields are required")
         else:
             user = create_user(username, email, password, is_admin)
+            st.success(user)
             if user:
                 st.success("Registration successful")
                 st.experimental_rerun()
