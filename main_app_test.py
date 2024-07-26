@@ -1,39 +1,52 @@
-import csv
 import os
+import csv
 import bcrypt
 import requests
 import pandas as pd
 import streamlit as st
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 
-# GitHub URLs for CSV files
+st.set_page_config(page_title="Hospital Accreditation Management System")
+
 USERS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/31587228e328108e009f288174371e68319324dd/users.csv"
 DOCUMENTS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/cd8d1d7c2c384568c795a661bdc8639939d9730e/documents.csv"
 NOTIFICATIONS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/2182a43ac0d091b7bbf6f52b41d68f4f26a793e3/notifications.csv"
-UPLOADS_DIR = "test"
 
+UPLOADS_DIR = "uploads"
+
+# Helper functions to interact with CSV files
 def read_csv(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return pd.read_csv(pd.compat.StringIO(response.text))
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return pd.read_csv(pd.compat.StringIO(response.text)).to_dict(orient='records')
+    except (requests.exceptions.RequestException, pd.errors.EmptyDataError):
+        return []
 
 def write_csv(file_path, data):
     df = pd.DataFrame(data)
     df.to_csv(file_path, index=False)
 
-def read_csv_from_file(file_path):
+def read_csv_from_file(file_path, columns):
     if not os.path.exists(file_path):
         with open(file_path, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['id', 'username', 'email', 'hashed_password', 'is_admin'])
-    return pd.read_csv(file_path).to_dict(orient='records')
+            writer.writerow(columns)
+    try:
+        return pd.read_csv(file_path).to_dict(orient='records')
+    except pd.errors.EmptyDataError:
+        return []
 
 def write_csv_to_file(file_path, data):
     df = pd.DataFrame(data)
     df.to_csv(file_path, index=False)
 
+# User Management Functions
 def create_user(username: str, email: str, password: str, is_admin: bool = False):
-    users_data = read_csv_from_file("users.csv")
+    users_data = read_csv_from_file("users.csv", ['id', 'username', 'email', 'hashed_password', 'is_admin'])
     if any(user['username'] == username or user['email'] == email for user in users_data):
         return None
     new_id = max(int(user['id']) for user in users_data) + 1 if users_data else 1
@@ -50,13 +63,15 @@ def create_user(username: str, email: str, password: str, is_admin: bool = False
     return new_user
 
 def authenticate_user(username: str, password: str):
-    users_data = read_csv_from_file("users.csv")
+    users_data = read_csv_from_file("users.csv", ['id', 'username', 'email', 'hashed_password', 'is_admin'])
     user = next((user for user in users_data if user['username'] == username), None)
     if user and bcrypt.checkpw(password.encode(), user['hashed_password'].encode()):
         return user
     return None
+
+# Notification Management Functions
 def add_notification(user_id: int, message: str):
-    notifications_data = read_csv_from_file("notifications.csv")
+    notifications_data = read_csv_from_file("notifications.csv", ['id', 'message', 'time', 'user_id'])
     new_id = max(int(notification['id']) for notification in notifications_data) + 1 if notifications_data else 1
     new_notification = {
         'id': new_id,
@@ -68,36 +83,50 @@ def add_notification(user_id: int, message: str):
     write_csv_to_file("notifications.csv", notifications_data)
 
 def send_email_notification(to_email, subject, message):
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    smtp_username = "your_email@gmail.com"
+    smtp_password = "your_password"
+
+    msg = MIMEMultipart()
+    msg['From'] = smtp_username
+    msg['To'] = to_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(message, 'plain'))
+
     try:
-        from_email = "your_email@gmail.com"
-        password = "your_password"
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
-
-        msg = MIMEMultipart()
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(message, 'plain'))
-
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(from_email, password)
-            server.send_message(msg)
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        server.sendmail(smtp_username, to_email, msg.as_string())
+        server.quit()
+        print("Email sent successfully")
     except Exception as e:
-        st.error(f"Failed to send email: {e}")
+        print(f"Failed to send email: {e}")
+
+# Streamlit App Functions
 def login():
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    role = st.selectbox("User Type", ["Regular", "Administrator"])
     if st.button("Login"):
-        user = authenticate_user(username, password)
-        if user:
-            st.session_state['user'] = user
-            st.success("Login successful")
-            st.experimental_rerun()
+        if not username or not password:
+            st.error("Please enter both username, password")
         else:
-            st.error("Invalid username or password")
+            user = authenticate_user(username, password)
+            if user:
+                st.session_state['user'] = {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'email': user['email'],
+                    'is_admin': user['is_admin']
+                }
+                st.success("Login successful")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid username or password")
 
 def register():
     st.subheader("Register")
@@ -146,7 +175,7 @@ def dashboard():
     notifications()
 
 def manage_users():
-    users_data = read_csv_from_file("users.csv")
+    users_data = read_csv_from_file("users.csv", ['id', 'username', 'email', 'hashed_password', 'is_admin'])
     st.write("List of users:")
     for user in users_data:
         st.write(f"Username: {user['username']}, Email: {user['email']}, Admin: {user['is_admin']}")
@@ -166,7 +195,7 @@ def update_accreditation_status():
         user_id = st.session_state['user']['id']
         add_notification(user_id, f"Status of {provider} updated to {new_status}")
         send_email_notification(
-            "ashokatk@gmail.com",
+            "recipient_email@example.com",
             "Accreditation Status Update",
             f"The status of {provider} has been updated to {new_status}."
         )
@@ -212,6 +241,7 @@ def accreditation_status_tracking():
 
 def document_management():
     user_id = st.session_state['user']['id']
+    documents_data = read_csv_from_file("documents.csv", ['id', 'provider', 'file_name', 'file_path', 'user_id'])
     providers = ["Insurance A", "Insurance B", "Insurance C", "Insurance D"]
     provider = st.selectbox("Associate with Provider", providers)
 
@@ -226,9 +256,9 @@ def document_management():
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            documents_data = read_csv_from_file("documents.csv")
+            new_id = max(int(doc['id']) for doc in documents_data) + 1 if documents_data else 1
             new_doc = {
-                'id': max(int(doc['id']) for doc in documents_data) + 1 if documents_data else 1,
+                'id': new_id,
                 'provider': provider,
                 'file_name': file_name,
                 'file_path': file_path,
@@ -239,7 +269,6 @@ def document_management():
             st.success("File uploaded successfully")
 
     st.subheader("Manage Documents")
-    documents_data = read_csv_from_file("documents.csv")
     user_documents = [doc for doc in documents_data if doc['user_id'] == user_id]
 
     if not user_documents:
@@ -266,30 +295,31 @@ def document_management():
                 if replacement_file.size > 2 * 1024 * 1024:
                     st.error("File size should not exceed 2 MB")
                 else:
-                    doc_to_replace = next((doc for doc in documents_data if doc['id'] == doc_id), None)
-                    if doc_to_replace:
-                        os.remove(doc_to_replace['file_path'])
-                        new_file_name = replacement_file.name
-                        new_file_path = os.path.join(UPLOADS_DIR, new_file_name)
-                        with open(new_file_path, "wb") as f:
-                            f.write(replacement_file.getbuffer())
+                    doc_to_replace = next(doc for doc in documents_data if doc['id'] == doc_id)
+                    os.makedirs(UPLOADS_DIR, exist_ok=True)
+                    os.remove(doc_to_replace['file_path'])
+                    new_file_name = replacement_file.name
+                    new_file_path = os.path.join(UPLOADS_DIR, new_file_name)
+                    with open(new_file_path, "wb") as f:
+                        f.write(replacement_file.getbuffer())
 
-                        doc_to_replace['file_name'] = new_file_name
-                        doc_to_replace['file_path'] = new_file_path
-                        write_csv_to_file("documents.csv", documents_data)
-                        st.success("File replaced successfully")
-                        del st.session_state['replace_doc']
-                        st.experimental_rerun()
+                    doc_to_replace['file_name'] = new_file_name
+                    doc_to_replace['file_path'] = new_file_path
+                    write_csv_to_file("documents.csv", documents_data)
+                    st.success("File replaced successfully")
+                    del st.session_state['replace_doc']
+                    st.experimental_rerun()
 
 def notifications():
     user_id = st.session_state['user']['id']
-    notifications_data = read_csv_from_file("notifications.csv")
-    user_notifications = [n for n in notifications_data if n['user_id'] == user_id]
+    notifications_data = read_csv_from_file("notifications.csv", ['id', 'message', 'time', 'user_id'])
+    user_notifications = [notif for notif in notifications_data if notif['user_id'] == user_id]
     if not user_notifications:
         st.write("No notifications available.")
     for notification in user_notifications:
         st.write(f"{notification['time']}: {notification['message']}")
-st.set_page_config(page_title="Hospital Accreditation Management System")
+
+# Main application
 st.markdown("<h1 style='text-align: center; font-size: 24px;'>Hospital Accreditation Management System</h1>", unsafe_allow_html=True)
 page = st.sidebar.radio(" ", ["Home", "Dashboard"])
 if page == "Home":
