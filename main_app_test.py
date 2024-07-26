@@ -15,7 +15,7 @@ USERS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/31587228e328108
 DOCUMENTS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/cd8d1d7c2c384568c795a661bdc8639939d9730e/documents.csv"
 NOTIFICATIONS_CSV_URL = "https://github.com/ashoka-swiftclaims/test/blob/2182a43ac0d091b7bbf6f52b41d68f4f26a793e3/notifications.csv"
 
-UPLOADS_DIR = "uploads"
+UPLOADS_DIR = "main"
 
 # Helper functions to interact with CSV files
 def read_csv(url):
@@ -140,7 +140,6 @@ def register():
             st.error("All fields are required")
         else:
             user = create_user(username, email, password, is_admin)
-            st.success(user)
             if user:
                 st.success("Registration successful")
                 st.experimental_rerun()
