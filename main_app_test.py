@@ -1,122 +1,104 @@
-from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
-import bcrypt
+import csv
 import os
-import smtplib
+import bcrypt
+import requests
+import pandas as pd
 import streamlit as st
+from datetime import datetime
 
-st.set_page_config(page_title="Hospital Accreditation Management System")
+# GitHub URLs for CSV files
+USERS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/users.csv"
+DOCUMENTS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/documents.csv"
+NOTIFICATIONS_CSV_URL = "https://raw.githubusercontent.com/username/repository/branch/notifications.csv"
+UPLOADS_DIR = "uploads"
 
-DATABASE_URL = "sqlite:///./hospital_accreditation.db"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+# Helper functions to interact with CSV files
+def read_csv(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return pd.read_csv(pd.compat.StringIO(response.text))
 
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    is_admin = Column(Boolean, default=False)
+def write_csv(file_path, data):
+    df = pd.DataFrame(data)
+    df.to_csv(file_path, index=False)
 
-class Document(Base):
-    __tablename__ = "documents"
-    id = Column(Integer, primary_key=True, index=True)
-    provider = Column(String, index=True)
-    file_name = Column(String)
-    file_path = Column(String)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    user = relationship('User')
+def read_csv_from_file(file_path):
+    if not os.path.exists(file_path):
+        with open(file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['id', 'username', 'email', 'hashed_password', 'is_admin'])
+    return pd.read_csv(file_path).to_dict(orient='records')
 
-class Notification(Base):
-    __tablename__ = "notifications"
-    id = Column(Integer, primary_key=True, index=True)
-    message = Column(String)
-    time = Column(DateTime, default=datetime.utcnow)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    user = relationship('User')
+def write_csv_to_file(file_path, data):
+    df = pd.DataFrame(data)
+    df.to_csv(file_path, index=False)
 
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
-
-def get_user_by_username(db: Session, username: str):
-    return db.query(User).filter(User.username == username).first()
-
-def create_user(db: Session, username: str, email: str, password: str, is_admin: bool = False):
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    db_user = User(username=username, email=email, hashed_password=hashed_password, is_admin=is_admin)
-    db.add(db_user)
-    try:
-        db.commit()
-        db.refresh(db_user)
-        return db_user
-    except IntegrityError:
-        db.rollback()
+def create_user(username: str, email: str, password: str, is_admin: bool = False):
+    users_data = read_csv_from_file("users.csv")
+    if any(user['username'] == username or user['email'] == email for user in users_data):
         return None
+    new_id = max(int(user['id']) for user in users_data) + 1 if users_data else 1
+    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    new_user = {
+        'id': new_id,
+        'username': username,
+        'email': email,
+        'hashed_password': hashed_password,
+        'is_admin': is_admin
+    }
+    users_data.append(new_user)
+    write_csv_to_file("users.csv", users_data)
+    return new_user
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = get_user_by_username(db, username)
-    if user and bcrypt.checkpw(password.encode('utf-8'), user.hashed_password.encode('utf-8')):
+def authenticate_user(username: str, password: str):
+    users_data = read_csv_from_file("users.csv")
+    user = next((user for user in users_data if user['username'] == username), None)
+    if user and bcrypt.checkpw(password.encode(), user['hashed_password'].encode()):
         return user
     return None
+def add_notification(user_id: int, message: str):
+    notifications_data = read_csv_from_file("notifications.csv")
+    new_id = max(int(notification['id']) for notification in notifications_data) + 1 if notifications_data else 1
+    new_notification = {
+        'id': new_id,
+        'message': message,
+        'time': datetime.utcnow().isoformat(),
+        'user_id': user_id
+    }
+    notifications_data.append(new_notification)
+    write_csv_to_file("notifications.csv", notifications_data)
 
 def send_email_notification(to_email, subject, message):
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    smtp_username = "ashokatk@gmail.com"
-    smtp_password = "8792940494"
-
-    msg = MIMEMultipart()
-    msg['From'] = smtp_username
-    msg['To'] = to_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(message, 'plain'))
-
     try:
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_username, smtp_password)
-        server.sendmail(smtp_username, to_email, msg.as_string())
-        server.quit()
-        print("Email sent successfully")
+        from_email = "your_email@gmail.com"
+        password = "your_password"
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(message, 'plain'))
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(from_email, password)
+            server.send_message(msg)
     except Exception as e:
-        print(f"Failed to send email: {e}")
-
-def add_notification(db: Session, user_id: int, message: str):
-    new_notification = Notification(message=message, user_id=user_id)
-    db.add(new_notification)
-    db.commit()
-    # Debugging statement
-    print(f"Notification added: {message}")
-
+        st.error(f"Failed to send email: {e}")
 def login():
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    role = st.selectbox("User Type", ["Regular", "Administrator"])
     if st.button("Login"):
-        if not username or not password:
-            st.error("Please enter both username, password")
+        user = authenticate_user(username, password)
+        if user:
+            st.session_state['user'] = user
+            st.success("Login successful")
+            st.experimental_rerun()
         else:
-            db = SessionLocal()
-            user = authenticate_user(db, username, password)
-            if user:
-                st.session_state['user'] = {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'is_admin': user.is_admin
-                }
-                st.success("Login successful")
-                st.experimental_rerun()
-            else:
-                st.error("Invalid username or password")
+            st.error("Invalid username or password")
 
 def register():
     st.subheader("Register")
@@ -129,8 +111,7 @@ def register():
         if not username or not email or not password:
             st.error("All fields are required")
         else:
-            db = SessionLocal()
-            user = create_user(db, username, email, password, is_admin)
+            user = create_user(username, email, password, is_admin)
             if user:
                 st.success("Registration successful")
                 st.experimental_rerun()
@@ -166,19 +147,17 @@ def dashboard():
     notifications()
 
 def manage_users():
-    db = SessionLocal()
-    users = db.query(User).all()
+    users_data = read_csv_from_file("users.csv")
     st.write("List of users:")
-    for user in users:
-        st.write(f"Username: {user.username}, Email: {user.email}, Admin: {user.is_admin}")
-        if st.button(f"Delete {user.username}"):
-            db.delete(user)
-            db.commit()
-            st.success(f"User {user.username} deleted")
+    for user in users_data:
+        st.write(f"Username: {user['username']}, Email: {user['email']}, Admin: {user['is_admin']}")
+        if st.button(f"Delete {user['username']}", key=f"delete_{user['id']}"):
+            users_data = [u for u in users_data if u['id'] != user['id']]
+            write_csv_to_file("users.csv", users_data)
+            st.success(f"User {user['username']} deleted")
             st.experimental_rerun()
 
 def update_accreditation_status():
-    db = SessionLocal()
     providers = ["Insurance A", "Insurance B", "Insurance C", "Insurance D"]
     status_options = ["Pending", "In Progress", "Approved", "Rejected"]
     provider = st.selectbox("Select Provider", providers)
@@ -186,7 +165,7 @@ def update_accreditation_status():
     if st.button("Update Status"):
         st.success(f"Status of {provider} updated to {new_status}")
         user_id = st.session_state['user']['id']
-        add_notification(db, user_id, f"Status of {provider} updated to {new_status}")
+        add_notification(user_id, f"Status of {provider} updated to {new_status}")
         send_email_notification(
             "ashokatk@gmail.com",
             "Accreditation Status Update",
@@ -233,7 +212,6 @@ def accreditation_status_tracking():
     st.table(filtered_data)
 
 def document_management():
-    db = SessionLocal()
     user_id = st.session_state['user']['id']
     providers = ["Insurance A", "Insurance B", "Insurance C", "Insurance D"]
     provider = st.selectbox("Associate with Provider", providers)
@@ -244,36 +222,43 @@ def document_management():
             st.error("File size should not exceed 2 MB")
         else:
             file_name = uploaded_file.name
-            file_path = os.path.join("uploads", file_name)
-            # Ensure the uploads directory exists
-            os.makedirs("uploads", exist_ok=True)
+            file_path = os.path.join(UPLOADS_DIR, file_name)
+            os.makedirs(UPLOADS_DIR, exist_ok=True)
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            new_doc = Document(provider=provider, file_name=file_name, file_path=file_path, user_id=user_id)
-            db.add(new_doc)
-            db.commit()
+            documents_data = read_csv_from_file("documents.csv")
+            new_doc = {
+                'id': max(int(doc['id']) for doc in documents_data) + 1 if documents_data else 1,
+                'provider': provider,
+                'file_name': file_name,
+                'file_path': file_path,
+                'user_id': user_id
+            }
+            documents_data.append(new_doc)
+            write_csv_to_file("documents.csv", documents_data)
             st.success("File uploaded successfully")
 
     st.subheader("Manage Documents")
-    documents = db.query(Document).filter_by(user_id=user_id).all()
+    documents_data = read_csv_from_file("documents.csv")
+    user_documents = [doc for doc in documents_data if doc['user_id'] == user_id]
 
-    if not documents:
+    if not user_documents:
         st.write("No documents found.")
     else:
-        for doc in documents:
-            st.write(f"Provider: {doc.provider}, File: {doc.file_name}")
+        for doc in user_documents:
+            st.write(f"Provider: {doc['provider']}, File: {doc['file_name']}")
             col1, col2 = st.columns(2)
             with col1:
-                if st.button(f"Delete {doc.file_name}", key=f"delete_{doc.id}"):
-                    os.remove(doc.file_path)
-                    db.delete(doc)
-                    db.commit()
-                    st.success(f"{doc.file_name} deleted")
+                if st.button(f"Delete {doc['file_name']}", key=f"delete_{doc['id']}"):
+                    os.remove(doc['file_path'])
+                    documents_data = [d for d in documents_data if d['id'] != doc['id']]
+                    write_csv_to_file("documents.csv", documents_data)
+                    st.success(f"{doc['file_name']} deleted")
                     st.experimental_rerun()
             with col2:
-                if st.button(f"Replace {doc.file_name}", key=f"replace_{doc.id}"):
-                    st.session_state['replace_doc'] = doc.id
+                if st.button(f"Replace {doc['file_name']}", key=f"replace_{doc['id']}"):
+                    st.session_state['replace_doc'] = doc['id']
 
         if 'replace_doc' in st.session_state:
             doc_id = st.session_state['replace_doc']
@@ -282,36 +267,30 @@ def document_management():
                 if replacement_file.size > 2 * 1024 * 1024:
                     st.error("File size should not exceed 2 MB")
                 else:
-                    doc_to_replace = db.query(Document).filter_by(id=doc_id).first()
-                    # Ensure the uploads directory exists
-                    os.makedirs("uploads", exist_ok=True)
-                    os.remove(doc_to_replace.file_path)
-                    new_file_name = replacement_file.name
-                    new_file_path = os.path.join("uploads", new_file_name)
-                    with open(new_file_path, "wb") as f:
-                        f.write(replacement_file.getbuffer())
+                    doc_to_replace = next((doc for doc in documents_data if doc['id'] == doc_id), None)
+                    if doc_to_replace:
+                        os.remove(doc_to_replace['file_path'])
+                        new_file_name = replacement_file.name
+                        new_file_path = os.path.join(UPLOADS_DIR, new_file_name)
+                        with open(new_file_path, "wb") as f:
+                            f.write(replacement_file.getbuffer())
 
-                    doc_to_replace.file_name = new_file_name
-                    doc_to_replace.file_path = new_file_path
-                    db.commit()
-                    st.success("File replaced successfully")
-                    del st.session_state['replace_doc']
-                    st.experimental_rerun()
+                        doc_to_replace['file_name'] = new_file_name
+                        doc_to_replace['file_path'] = new_file_path
+                        write_csv_to_file("documents.csv", documents_data)
+                        st.success("File replaced successfully")
+                        del st.session_state['replace_doc']
+                        st.experimental_rerun()
 
 def notifications():
-    db = SessionLocal()
     user_id = st.session_state['user']['id']
-    user_notifications = db.query(Notification).filter_by(user_id=user_id).all()
+    notifications_data = read_csv_from_file("notifications.csv")
+    user_notifications = [n for n in notifications_data if n['user_id'] == user_id]
     if not user_notifications:
-        # Debugging statement
         st.write("No notifications available.")
     for notification in user_notifications:
-        st.write(f"{notification.time}: {notification.message}")
-
-# ---------------------------------
-# Main application
-# # for testing purposes
-# st.session_state['user'] = {'id': 1, 'username': 'ashoka', 'email': 'ashokatk@gmail.com', 'is_admin': True} # Set to False for regular user testing
+        st.write(f"{notification['time']}: {notification['message']}")
+st.set_page_config(page_title="Hospital Accreditation Management System")
 st.markdown("<h1 style='text-align: center; font-size: 24px;'>Hospital Accreditation Management System</h1>", unsafe_allow_html=True)
 page = st.sidebar.radio(" ", ["Home", "Dashboard"])
 if page == "Home":
@@ -322,4 +301,3 @@ if page == "Home":
         register()
 elif page == "Dashboard":
     dashboard()
-
