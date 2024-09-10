@@ -1,0 +1,36 @@
+{
+    "hospital_name": "Aquino",
+    "hospital_address": "MABINI STREET, MAGUGPO SOUTH, TAGUM CITY",
+    "contact_number": "084 216-2156",
+    "mail_id": "aouinphospital@yahoo.com",
+    "annex": "H",
+    "patients_name": "mission Vilma",
+    "case_number": "2010000",
+    "nurses_notes": [
+        {
+            "Date_or_Shift": "2/8/14",
+            "FOCUS": "Admission",
+            "nurses_notes": "Admitted thir 38 year old female, Case in olue Ao LBM initial V/V Checke V and recorded. Seen and examined by OD Dr. Baldoman with croter made and carled out, labs regnessed and forworded venocly  standerd press 16 mcelmr mpung we 08 at Leff medacarpal wein, Mellent whered he wom of cholce and endovord NOD"
+        },
+        {
+            "Date_or_Shift": "2/9/14",
+            "FOCUS": "CONT OF ctrus",
+            "nurses_notes": "DE RECHM⌀ V whriling PLOSTI Ea PASMT 93 AVAPE / Respu-sivy INF A ~ VIHn-12 TO 100 C V comcon J Reci 2 PD - ecto 3 120 ON L DVF mros 1 R- VEFT '82 PICTO CONFORDED EVO 012.177 PIEXT SATT 09 DOMINADORE, NISHISAN-IN: R"
+        },
+        {
+            "Date_or_Shift": "2/9/14",
+            "FOCUS": "ASSESSMENT",
+            "nurses_notes": "D-RECLiveD PT ON BED, awane AND Responsive; NOT m Respinanmu msness i C patent N site; 3 IVF Ongoinie, # 1 PNSSiL @ 120 alwr; inpusine well; A- VS taken and recorded; Bve meds men as ordered; needs alhnaed, Monitored perudically, ared PGY; Health feachings impart. R. On becl resting. D sem and assessed by m- namas c orders made; A - Camiul mt orders. K - Endiuml the NOD"
+        },
+        {
+            "Date_or_Shift": "2/9/14",
+            "FOCUS": "continuity OF CAD",
+            "nurses_notes": "is RELEWBO perment on OD. Aurile AnDastasive But UF 1442 RECel. moin 6 WELL- on ONT - helexts AO san DL hearm COTIFT. A, 0% Uterines AND LECORDEP. MAVE iLF helevent A. nemo WATE ceu POWE IROS Qued au Nerros ATENDUO Withuho AND Unisex 8 LEFT On BBO RESTING"
+        },
+        {
+            "Date_or_Shift": "2/8/14",
+            "FOCUS": "continuity OF CAD",
+            "NURSES_NOTES": "D- Receilud on. bed. asteep i ndenarsw omang UF ineusing well and maulard at orderd rate A-wilal sians taken and recorded; Bedirde carr Siceraiu ve; iPro dided calm and vertpul enw venmen"
+        }
+    ]
+}

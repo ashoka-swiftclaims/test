@@ -1,0 +1,37 @@
+{
+    "philhealth_accreditation_number_pan_of_health_care_institution": "H11028283",
+    "name_of_health_care_institution": "AQUINO MEDICAL SPECIALISTS HOSPITAL, INC.",
+    "address": "MABINI ST., MAGUGPO SOUTH,TAGUM CITY",
+    "name_of_patlent": "PADREQUE MARIBEL VILLANUEVA",
+    "was_patient_referred_by_another_health_care_institution_hci": "NO",
+    "date_admitted": "09 - 01 - 2015",
+    "time_admitted": "03 : 22 PM",
+    "date_discharged": "09 - 03 - 2015",
+    "time_discharged": "05 : 30 PM",
+    "patlent_disposition": "Recovered",
+    "type_of_accommodation": "Private",
+    "admission_diagnosis_or_es": "CHRONIC RENAL FAILURE, ANEMIA, HPN STAGE II",
+    "discharged_diagnosis_or_es": [
+        {
+            "diagnosis": "ADULT ONSET DIABETES MELLITUS",
+            "icd_codes": "E11.1"
+        },
+        {
+            "diagnosis": "OTHER CHRONIC RENAL FAILURE",
+            "icd_codes": "N18.8"
+        },
+        {
+            "diagnosis": "HYPERTENSION STAGE II",
+            "icd_codes": "I10.1"
+        },
+        {
+            "diagnosis": "HYPERTHYROIDISM",
+            "icd_codes": "E05.9"
+        },
+        {
+            "diagnosis": "POLYNEUROPATHY",
+            "icd_codes": "G22.9"
+        }
+    ],
+    "first_case_rate": "E11.1"
+}

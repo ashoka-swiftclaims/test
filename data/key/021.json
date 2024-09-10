@@ -1,0 +1,27 @@
+{
+    "annex":"A",
+	"patient_name":"CARMI M. Fronts",
+	"age":"25",
+	"date_and_time_admitted":"1-7-19 @ 7:00 AM ",
+	"address":" CAUND ALAYAT DatMur",
+	"date_and_time_discharge":"1-8-19 @ 7:00 PM",
+	"final_diagnosis":"1en1/2 (30-0)PUPT 39 wh Aql, CEDH 1A LAB가",
+	"hospital_charge": { 
+		"actual":"4,800",
+		"phic":"1,800",
+		"balance":"0"
+		},
+	"profesional": {
+		"actual":"3,200",
+		"phic":"3,200",
+		"balance":"0"
+		},
+	"total": {
+		"actual":"8,000",
+		"phic":"8,000",
+		"balance":"0"
+		},
+	"midwife_service_provider":"FENNYVEL G. MERCADO",
+	"cellphone_number":"09770631914 ",
+	"hindi":"Yes"
+}

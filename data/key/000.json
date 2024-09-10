@@ -1,0 +1,27 @@
+{
+    "hospital_name": "AQUINO" ,
+    "hospital_address": "MABINI STREET, MAGUGPO SOUTH, TAGUM CITY",
+    "phone_number": "(084) 216-2156",
+    "mail_id": "aquinohospital@yahoo.com",
+    "annex": "I",
+    "name_of_patient": "mission, Vilma",
+    "age": "37",
+    "case_number": "2016021890",
+    "medication_sheet": [
+        {
+            "date_ordered": "2/9/14",
+            "medicine_and_treatment": ["apro frozack 500mg", "TAB 9.0 Bub", "emtrRou youg", "VTT ED"],
+            "date_or_time": ["6", "6", "6", ""]
+        },
+        {
+            "date_ordered": "2/9",
+            "medicine_and_treatment": ["ataos", "DO P·O"],
+            "date_or_time": ["6", "12"]
+        },
+        {
+            "date_ordered": "2/9/16",
+            "medicine_and_treatment": ["LOYEXAMUDE 2mw", "DO P·O"],
+            "date_or_time": ["6", "12"]
+        }
+    ]
+}
