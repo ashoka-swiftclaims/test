@@ -1,0 +1,19 @@
+{
+    "hospital_name": "DOMINGO CASANO HOSPITAL",
+    "hospital_address": "431 Real St., Dolores, Eastern Samar",
+    "department": "RADIOLOGY DEPARTMENT",
+    "x-ray_no": "16813",
+    "patient_name": "IRASGA, AVELINO",
+    "age": "79",
+    "sex": "M",
+    "date": "11-09-2017",
+    "examination_request": "CHEST PA",
+    "provisional_diagnosis_and_brief_history": "COUGH",
+    "annex": "E",
+    "radiological_report": {
+        "chest_pa": "ALVEOLAR DENSITIES IN THE RIGHT LATERAL BASAL LUNG. CLEAR SULCI. HEART IS NOT ENLARGED TRACHEA AT MIDLINE. THORACIC CAGE AND OTHER CHEST STRUCTURES ARE NORMAL.",
+        "impression": "SEGMENTAL PNEUMONIA. RIGHT BASAL LUNG"
+    },
+    "radiologist": "MELWIDA C. AMAGO,'M.D., DPBR",
+    "prepared_by": "URBANO C. JOCOSOL, RXT."
+}
